@@ -2,6 +2,28 @@
    <div>
     <input type="file" @change="handleFileChange" />
     <el-button @click="handleUpload">上传</el-button>
+    <h2>总进度</h2>
+    <el-progress :percentage="uploadPercentage"></el-progress>
+    <el-table
+      :data="data"
+      stripe
+      style="width: 100%">
+      <el-table-column
+        prop="hash"
+        label="切片"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        label="大小(kb)"
+        width="180" v-slot='{row:{ chunk: { size } }}'>
+        {{ (size / 1024).toFixed(1) }}
+      </el-table-column>
+      <el-table-column
+        prop="percentage"
+        label="进度" v-slot='{row:{ percentage }}'>
+        <el-progress :percentage="percentage"></el-progress>
+      </el-table-column>
+    </el-table>
   </div>
 </template>
 
@@ -18,6 +40,19 @@ export default {
     },
     data: []
   }),
+  mounted() {
+    // console.log("this.data", this.data)
+  },
+  computed: {
+    uploadPercentage() {
+      if (!this.container.file || !this.data.length) return 0;
+      const loaded = this.data
+        .map(item => item.chunk.size * item.percentage)
+        .reduce((acc, cur) => acc + cur);
+      console.log("loaded", loaded)
+      return parseInt((loaded / this.container.file.size).toFixed(2));
+    }
+  },
   methods: {
      handleFileChange(e) {
       const [file] = e.target.files;
@@ -31,14 +66,17 @@ export default {
       const fileChunkList = this.createFileChunk(this.container.file)
       this.data = fileChunkList.map(({ file }, idx) => ({
         chunk: file,
-        hash: this.container.file.name + "-" + idx // 文件名 + 数组下标
+        index: idx,
+        hash: this.container.file.name + "-" + idx, // 文件名 + 数组下标
+        percentage: 0
       }))
+      // console.log(2333,this.data)
       await this.uploadChunks()
     },
     // 生成文件切片
     createFileChunk(file, size = SIZE) {
       const fileChunkList = []
-      let cur = 0 
+      let cur = 0
       while(cur < file.size) {
         fileChunkList.push({ file: file.slice(cur, cur + size) })
         cur += size;
@@ -47,17 +85,18 @@ export default {
     },
     // 上传切片
     async uploadChunks() {
-      const requestList = this.data.map(({chunk, hash}) => {
+      const requestList = this.data.map(({chunk, hash, index}) => {
         const formData = new FormData()
         formData.append("chunk", chunk)
         formData.append("hash", hash)
         formData.append("filename", this.container.file.name)
-        return { formData }
+        return { formData, index }
       })
-      .map(async ({ formData }) =>
+      .map(async ({ formData, index }) =>
         request({
           url: "http://localhost:3000",
-          data: formData
+          data: formData,
+          onProgress: this.createProgressHandler(this.data[index])
         })
       )
       // 并发切片
@@ -76,6 +115,12 @@ export default {
           size
         })
       })
+    },
+    createProgressHandler(item) {
+      return e => {
+        console.log("whhat", e)
+        item.percentage = parseInt(String((e.loaded / e.total) * 100));
+      }
     }
   }
 };
