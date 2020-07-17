@@ -1,8 +1,8 @@
 <template>
-   <div>
+   <div class='container'>
     <input type="file" @change="handleFileChange" />
     <el-button @click="handleUpload">上传</el-button>
-    <h2>总进度</h2>
+    <h2>上传《{{container.file && container.file.name}}》总进度</h2>
     <el-progress :percentage="uploadPercentage"></el-progress>
     <el-table
       :data="data"
@@ -49,13 +49,14 @@ export default {
       const loaded = this.data
         .map(item => item.chunk.size * item.percentage)
         .reduce((acc, cur) => acc + cur);
-      console.log("loaded", loaded)
+      // console.log("loaded", loaded)
       return parseInt((loaded / this.container.file.size).toFixed(2));
     }
   },
   methods: {
      handleFileChange(e) {
       const [file] = e.target.files;
+      console.log("??file", file)
       // console.log("?", this.$data, this.$options.data(), Object.assign(this.$data, this.$options.data()))
       if (!file) return;
       Object.assign(this.$data, this.$options.data());
@@ -64,10 +65,10 @@ export default {
     async handleUpload() {
       if (!this.container.file) return;
       const fileChunkList = this.createFileChunk(this.container.file)
-      this.data = fileChunkList.map(({ file }, idx) => ({
+      this.data = fileChunkList.map(({ file }, index) => ({
         chunk: file,
-        index: idx,
-        hash: this.container.file.name + "-" + idx, // 文件名 + 数组下标
+        index,
+        hash: this.container.file.name + "-" + index, // 文件名 + 数组下标
         percentage: 0
       }))
       // console.log(2333,this.data)
@@ -81,6 +82,7 @@ export default {
         fileChunkList.push({ file: file.slice(cur, cur + size) })
         cur += size;
       }
+      console.log("!!", fileChunkList)
       return fileChunkList
     },
     // 上传切片
@@ -118,10 +120,18 @@ export default {
     },
     createProgressHandler(item) {
       return e => {
-        console.log("whhat", e)
+        // console.log("whhat", e)
         item.percentage = parseInt(String((e.loaded / e.total) * 100));
       }
     }
   }
 };
 </script>
+
+<style lang="stylus" scoped>
+  .container {
+    width 100%
+    padding 50px
+    box-sizing border-box
+  }
+</style>

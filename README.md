@@ -1,29 +1,29 @@
-# uploadfile
+# 大文件上传
+## 前端
 
-## Project setup
-```
-yarn install
-```
+核心是利用 Blob.prototype.slice 方法，和数组的 slice 方法相似，调用的 slice 方法可以返回原文件的某个切片
+`https://developer.mozilla.org/zh-CN/docs/Web/API/Blob/slice`
+借助 http 的可并发性，同时上传多个切片，这样从原本传一个大文件，变成了同时传多个小的文件切片，可以大大减少上传时间
+另外由于是并发，传输到服务端的顺序可能会发生变化，所以我们还需要给每个切片记录顺序
 
-### Compiles and hot-reloads for development
-```
-yarn run serve
-```
+## 服务端
 
-### Compiles and minifies for production
-```
-yarn run build
-```
+服务端需要负责接受这些切片，并在接收到所有切片后合并切片
 
-### Run your tests
-```
-yarn run test
-```
+这里又引伸出两个问题
 
-### Lints and fixes files
-```
-yarn run lint
-```
+何时合并切片，即切片什么时候传输完成
+如何合并切片
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+第一个问题需要前端进行配合，前端在每个切片中都携带切片最大数量的信息，当服务端接受到这个数量的切片时自动合并，也可以额外发一个请求主动通知服务端进行切片的合并
+第二个问题，具体如何合并切片呢？这里可以使用 nodejs 的 读写流（readStream/writeStream），将所有切片的流传输到最终文件的流里
+
+## 生成hash
+
+hash用文件名 + index 明显是不严谨的。  应该文件内容不变 => hash不变
+这里用到另一个库 spark-md5，它可以根据文件内容计算出文件的 hash 值  
+
+另外考虑到如果上传一个超大文件，读取文件内容计算 hash 是非常耗费时间的，并且会引起 UI 的阻塞，导致页面假死状态，
+所以我们使用 web-worker 在 worker 线程计算 hash，这样用户仍可以在主界面正常的交互
+
+# 断点续传
