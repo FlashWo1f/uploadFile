@@ -68,7 +68,8 @@ export default {
       this.data = fileChunkList.map(({ file }, index) => ({
         chunk: file,
         index,
-        hash: this.container.file.name + "-~-" + index, // 文件名 + 数组下标
+        // 文件名 + 连接符 + 数组下标 连接符号尽量复杂少见 如果filename 中存在 连接符号的话就会出错误，有条件的用 hash 值
+        hash: this.container.file.name + "-~-" + index, 
         percentage: 0
       }))
       // console.log(2333,this.data)
