@@ -68,7 +68,7 @@ export default {
       this.data = fileChunkList.map(({ file }, index) => ({
         chunk: file,
         index,
-        hash: this.container.file.name + "-" + index, // 文件名 + 数组下标
+        hash: this.container.file.name + "-~-" + index, // 文件名 + 数组下标
         percentage: 0
       }))
       // console.log(2333,this.data)

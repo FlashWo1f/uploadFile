@@ -33,7 +33,8 @@ const mergeFileChunk = async (filePath, fileName, size) => {
   const chunkDir = path.resolve(UPLOAD_DIR, fileName + '222')
   const chunkPaths = await fse.readdir(chunkDir)
   // 根据切片下标进行排序
-  chunkPaths.sort((a, b) => a.split('-')[0] - b.split('-')[0])
+  chunkPaths.sort((a, b) => a.split('-~-')[1] - b.split('-~-')[1])
+  console.log('排序', chunkPaths)
   await Promise.all(
     chunkPaths.map((chunkPath, index) => {
       return pipeStream(
@@ -61,7 +62,7 @@ server.on("request", async (req, res) => {
   const multipart = new multiparty.Form()
   multipart.parse(req, async (err, fields, files) => {
     if (err) return;
-    console.log("files...", files, fields)
+    // console.log("files...", files, fields)
     const [chunk] = files.chunk
     const [hash] = fields.hash
     const [filename] = fields.filename
